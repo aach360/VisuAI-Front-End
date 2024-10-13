@@ -1,3 +1,9 @@
+"""
+Author: Andy Yang
+Date: 2024/10/11
+Description: Created the Visuals, Details, and Front End of VisuAI Homepage and Camera with Flask, HTML, CSS, and JavaScript
+"""
+
 from flask import Flask, render_template, Response
 import cv2
 
