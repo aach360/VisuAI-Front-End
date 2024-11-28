@@ -2,14 +2,17 @@
 from flask import Flask, render_template, Response
 import argparse
 import cv2
-from ultralytics import YOLOv10
+from ultralytics import YOLO
 from threading import Thread
 import speech_recognition as sr
 import numpy as np
 from g4f.client import Client
 import time
 from g4f.client import Client
-from g4f.Provider.GeminiPro import GeminiPro
+import g4f
+import g4f.Provider.Blackbox
+import requests
+from g4f.client import Client
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -26,21 +29,21 @@ temp = "This is the first iteration of the response so ignore my instructions on
 
 
 def dir_scene(img_bytes):
-    imgClient = Client(
-        api_key="AIzaSyD7gGcC_grUkZx5Ww_N1h_RkeHlj95U6RM",
-        provider=GeminiPro
+    imgclient = Client(
+    provider=g4f.Provider.Blackbox
     )
-    response = imgClient.chat.completions.create(
-        model="gemini-1.5-flash",
+    response = imgclient.chat.completions.create(
+    model= "gemini-pro" ,
         messages=[{"role": "user", "content": "I am a blind person that needs to know details of this image with defining features such as specific objects, their color, and distance from my position. You are a helpful agent that will give a vivid and detailed description of the situation. If there are any people and their faces visible try to guess their emotion based on their face. Please provide an educated guess on what actions are happening in this scene as well as a guess on what may happen next."}],
-        image=img_bytes
+        
+    image=img_bytes
     )
 
     return response.choices[0].message.content
 
 
 def parse_arguments() -> argparse.Namespace:
-  parser = argparse.ArgumentParser(description="YOLOv8 live")
+  parser = argparse.ArgumentParser(description="YOLOv9 live")
   parser.add_argument(
       "--webcam-resolution",
       default=[1280, 720],
@@ -233,11 +236,10 @@ def gptDirectory(text, results, model, cap, img_bytes):
             speak("Email sent, help should be arriving soon")
 def question( quest,img_bytes):
     imgClient = Client(
-        api_key="AIzaSyD7gGcC_grUkZx5Ww_N1h_RkeHlj95U6RM",
-        provider=GeminiPro
+        provider=g4f.Provider.Blackbox
     )
     response = imgClient.chat.completions.create(
-        model="gemini-1.5-flash",
+        model="gemini-pro"	,
         messages=[{"role": "user", "content": "I am a blind person that has a question about this image as follows:" + quest}],
         image=img_bytes 
     )
@@ -263,8 +265,7 @@ def main():
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 
-    model = YOLOv10.from_pretrained('jameslahm/yolov10x')
-
+    model = YOLO("yolov9t.pt")
     last_data_log_time = time.time()
     last_dir_log_time = time.time()
     last_update_time = time.time()
