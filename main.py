@@ -1,3 +1,9 @@
+"""
+Author: Aarav Chokshi
+Date: 2024-10-11
+Project: VisuAI Back End
+Description: Created the entire AI ML software and the Vision model.
+"""
 
 from flask import Flask, render_template, Response
 import argparse
@@ -8,7 +14,6 @@ import speech_recognition as sr
 import numpy as np
 from g4f.client import Client
 import time
-from g4f.client import Client
 import g4f
 import g4f.Provider.Blackbox
 import requests
@@ -213,16 +218,19 @@ def speak(text):
 def gptDirectory(text, results, model, cap, img_bytes):
    client = Client()
 
-   scene_description_prompt = ("the input is: " + text + "\n" + "You are a directory assistant that will follow the following instructions word for word."+"\n"+
-                               "If the input is asking to find an object for example(asking where is ___ or help me find ___), ONLY output verbatim exactly as follows: \"find\" + the object that is trying to be found."+"\n"+
-                               "If the input is a question (who, what, when, where, why) about the scene for examplem asking about an object or the scene. ONLY output verbatim exactly as follows: \"question\" + the question asked." +"\n"+
-                               "If the input states there is an emergency and the input is calling out for help, ONLY output verbatim exactly as follows: \"help\"." +"\n"+
-                               "If the input does not match any of the above, be a helpful assistant and try to assist their inquiry."+"\n")
+   scene_description_prompt = ("You are a directory assistant that will follow the following instructions word for word."+"\n"+
+                            "If the input is asking to find an object for example(asking where is ___ or help me find ___), ONLY output verbatim exactly as follows: \"find\" + the object that is trying to be found."+"\n"+
+                            "If the input is a question (who, what, when, where, why) about the scene for examplem asking about an object or the scene. ONLY output verbatim exactly as follows: \"question\" + the question asked." +"\n"+
+                            "If the input states there is an emergency and the input is calling out for help, ONLY output verbatim exactly as follows: \"help\"." +"\n"+
+                            "If the input does not match any of the above, be a helpful assistant and try to assist their inquiry."+"\n"+
+                            "the input is: " + text)
    response = client.chat.completions.create(
       model="gpt-4o",
       messages=[{"role": "user", "content": scene_description_prompt}]
    )
+   
    output = response.choices[0].message.content
+   print(output)
    s = output.split(" ")
    for i in s:
         if (i == "find"):
@@ -232,7 +240,7 @@ def gptDirectory(text, results, model, cap, img_bytes):
             s.remove("question")
             question(' '.join(s), img_bytes)
         elif (i == "help"):
-            emergency_contact()
+            #emergency_contact()
             speak("Email sent, help should be arriving soon")
 def question( quest,img_bytes):
     imgClient = Client(
@@ -240,7 +248,7 @@ def question( quest,img_bytes):
     )
     response = imgClient.chat.completions.create(
         model="gemini-pro"	,
-        messages=[{"role": "user", "content": "I am a blind person that has a question about this image as follows:" + quest}],
+        messages=[{"role": "user", "content": "I am a blind person that has a question about this image as follows:" + quest+"In your response, DO NOT INCLUDE ANY FORMATING SUCH AS BOlD OR HEADINGS WHATSOVER. ONLY PROVIDE A RESPONSE IN PLAIN UNFORMATTED TEXT."}],
         image=img_bytes 
     )
 
@@ -256,7 +264,7 @@ def emergency_contact():
     s.sendmail("sender_email_id", email, message) #We have to put our credentials in here (kinda risky) other side note: we can add a location feature just have to add to message.
     s.quit()
 def main():
-    speak("Hello I am VisuAI. I ill be your new eyes. If you have any questions, or want me to find an object, or have an emergency, just say hey vision.")
+    speak("Hello I am VisuAI. I ill be your new eyes. If you have any questions, or want me to find an object, or have an emergency, just say hello vision.")
     args = parse_arguments()
     frame_width, frame_height = args.webcam_resolution
     h_fov = args.horizontal_fov
@@ -271,7 +279,7 @@ def main():
     last_update_time = time.time()
     data_log = ""
     dir_log = ""
-    wake= "hey vision"
+    wake= "hello vision"
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -285,6 +293,9 @@ def main():
                                "Here is a more detailed description of the objects mentioned:".join(object_descriptions)
 
             current_time = time.time()
+            success, img_encoded = cv2.imencode('.jpg', frame)
+            if success:
+                img_bytes = img_encoded.tobytes()
 
             if current_time - last_data_log_time >= 1:
                 data_log += f"{time.strftime('%H:%M:%S', time.localtime())}: {detected_objects}\n"
@@ -299,7 +310,7 @@ def main():
                     dir_log += f"{time.strftime('%H:%M:%S', time.localtime())}: {dir_description}\n"
                     last_dir_log_time = current_time
 
-            if current_time - last_update_time >= 75:
+            if current_time - last_update_time >= 100:
                 scene_description = generate_scene_description(data_log, dir_log)
                 speak(scene_description)
                 print(scene_description)
@@ -341,4 +352,4 @@ def camera():
     return render_template('camera.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
